@@ -23,7 +23,8 @@ function index(req, res) {
         }
         else{
           tasks = tasks.rows;
-        res.render('tasks/index', { tasks });
+          const a = "A";
+        res.render('tasks/index', { a, tasks });
         }
       });
     
@@ -39,7 +40,7 @@ function index(req, res) {
         results = results.rows;
       }
       var resul = results;
-      res.render('tasks/index', { resul });
+      res.render('tasks/index', { sector, resul });
     });
   }
 
@@ -65,12 +66,50 @@ function index(req, res) {
   
 }
 
-
-
-
-  
   function register(req, res) {
     res.render('tasks/create');
+  
+  }
+
+  function edit(req, res) {
+    const id = req.params.id;
+      pool.query('SELECT * FROM propuestas WHERE id = $1', [id], (err, prop) => {
+        if(err) {
+          res.json(err);
+        }
+        else{
+          const props = prop.rows
+        res.render('tasks/edit', { props });
+        }
+      });
+  
+  }
+
+  function update(req, res) {
+    const id = req.params.id;
+    const { title, description } = req.body;
+    const query = `UPDATE propuestas SET title = '${title}', description = '${description}' WHERE id = ${id};`
+    console.log(query)
+    pool.query(query, (err, prop) => {
+        if(err) {
+          res.json(err);
+        }
+        else{
+        res.redirect(`/view/${id}`);
+        }
+      });
+  
+  }
+
+  function proposal(req, res) {
+    const sector = req.params.sector;
+    console.log(sector);
+    res.render('tasks/proposal', { sector });
+  
+  }
+
+  function inicio(req, res) {
+    res.redirect('/');
   
   }
 
@@ -89,6 +128,20 @@ function index(req, res) {
     });
   }
 
+  function storeProposal(req, res) {
+    const { title, description, segment } = req.body
+    const sector = req.params.sector;
+    pool.query('INSERT INTO propuestas (title, description, sector, segment) values ($1, $2, $3, $4)', [title, description, sector, segment], (err, results) => {
+      if(err) {
+        throw err;
+      }
+      else{
+        res.redirect(`/obtenerprop/${sector}`);
+      }
+      
+    });
+  }
+
   function prop(req, res) {
     const { title, description, files, sector, segment } = req.body;
     pool.query('INSERT INTO propuestas (title, description, files, sector, segment) values ($1, $2, $3, $4, $5);', [title, description, files, sector, segment], (err, results) => {
@@ -102,39 +155,53 @@ function index(req, res) {
     });
   }
   
-  function destroy(req, res) {
-    const id = req.body.id;
   
-    req.getConnection((err, conn) => {
-      conn.query('DELETE FROM taskss WHERE id = ?', [id], (err, rows) => {
-        res.redirect('/tasks');
-      });
-    })
-  }
-  
-  function edit(req, res) {
+  function view(req, res) {
     const id = req.params.id;
-  
-    req.getConnection((err, conn) => {
-      conn.query('SELECT * FROM taskss WHERE id = ?', [id], (err, tasks) => {
+      pool.query('SELECT * FROM propuestas WHERE id = $1', [id], (err, prop) => {
         if(err) {
           res.json(err);
         }
-        res.render('tasks/edit', { tasks });
+        else{
+          const props = prop.rows
+        res.render('tasks/view', { props });
+        }
       });
-    });
+
   }
-  
-  function update(req, res) {
+
+  function vote (req, res) {
     const id = req.params.id;
-    const data = req.body;
-  
-    req.getConnection((err, conn) => {
-      conn.query('UPDATE taskss SET ? WHERE id = ?', [data, id], (err, rows) => {
-        res.redirect('/tasks');
-      });
+    pool.query(`UPDATE propuestas SET votos = votos + 1 WHERE id = ${id};`, (err, tasks) => {
+      if(err) {
+        throw err;
+      }
+      else{
+        res.redirect(`/view/${id}`);
+      }
+      
     });
   }
+
+  function listar (req, res) {
+    const id = req.params.id;
+    pool.query(`SELECT * FROM propuestas;`, (err, tasks) => {
+      if(err) {
+        throw err;
+      }
+      else{
+        //res.redirect(`/view/${id}`);
+        res.json(tasks.rows)
+      }
+      
+    });
+  }
+
+
+
+
+
+  
 
   
   function tabla(req, res) {
@@ -149,8 +216,32 @@ function index(req, res) {
     });
 }
 
+function prueba(req, res) {
+    pool.query('UPDATE propuestas SET description = prueba WHERE id = 9;', (err, tasks) => {
+      if(err) {
+        throw err;
+      }
+      else{
+        res.status(200).json("Prueba")
+      }
+      
+    });
+} 
+
 function propuestas(req, res) {
-  pool.query('CREATE TABLE propuestas (id SERIAL PRIMARY KEY, title VARCHAR(50), description VARCHAR(200), files VARCHAR(100), sector VARCHAR(50), segment VARCHAR(50));', (err, tasks) => {
+  pool.query('ALTER TABLE propuestas RENAME COLUMN votes TO votos;', (err, tasks) => {
+    if(err) {
+      throw err;
+    }
+    else{
+      res.status(200).json("Creada")
+    }
+    
+  });
+}
+
+function votes (req, res) {
+  pool.query('UPDATE propuestas SET votos = 0;', (err, tasks) => {
     if(err) {
       throw err;
     }
@@ -172,21 +263,41 @@ function reset(req, res) {
     }
 
   });
-
-  
 }
+
+function resetp(req, res) {
+  pool.query('DELETE FROM propuestas; ALTER SEQUENCE propuestas_id_seq RESTART WITH 1;', (err, tasks) => {
+    if(err) {
+      throw err;
+    }
+    else{
+      res.status(200).json("Eliminados")
+    }
+
+  });
+}
+
+
   
   module.exports = {
     index: index,
     register: register,
     store: store,
-    destroy: destroy,
-    edit: edit,
-    update: update,
     tabla: tabla,
     reset:reset,
     propuestas:propuestas,
     obtenerPropuestas:obtenerPropuestas,
     login:login,
-    prop:prop
+    prop:prop,
+    inicio:inicio,
+    proposal:proposal,
+    storeProposal:storeProposal,
+    view:view,
+    edit:edit,
+    update:update,
+    prueba:prueba,
+    votes:votes,
+    vote:vote,
+    listar:listar,
+    resetp:resetp
   }
