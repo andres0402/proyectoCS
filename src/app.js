@@ -8,7 +8,7 @@ const Pool = require('pg').Pool
 const cors = require("cors");
 
 const app = express();
-app.set('port', 1337);
+app.set('port', 4000);
 
 
 app.use(bodyParser.urlencoded({
@@ -25,7 +25,7 @@ app.set('view engine', 'hbs');
 
 
 
-app.listen(app.get('port'), () => {
+app.listen(process.env.PORT || 4000, () => {
   console.log('Listening on port ', app.get('port'));
 });
 
