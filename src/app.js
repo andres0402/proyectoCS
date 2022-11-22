@@ -8,7 +8,7 @@ const Pool = require('pg').Pool
 const cors = require("cors");
 
 const app = express();
-app.set('port', 4000);
+app.set('port', 1337);
 
 
 app.use(bodyParser.urlencoded({
