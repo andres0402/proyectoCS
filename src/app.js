@@ -10,7 +10,6 @@ const cors = require("cors");
 const app = express();
 app.set('port', 4000);
 
-
 app.use(bodyParser.urlencoded({
   extended: true
 }));
